@@ -1,0 +1,41 @@
+  SimpleConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: ami-0de53d8956e8dcf80
+      InstanceType: c5.large
+      IamInstanceProfile: !Ref Ec2InstanceProfile
+      SecurityGroups:
+        -  "Fn::GetAtt": [ InstanceSecurityGroup, GroupId ]
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash -xe
+            export LC_CTYPE=en_US.UTF-8
+            export LC_ALL=en_US.UTF-8
+            EC2_REGION=#{AWS::Region}
+            sudo mkdir -p /mnt/efs
+            EFS_FILE_SYSTEM_ID=#{EFSFileSystem}
+            SQS_URL=#{SQSPack}
+            DIR_SRC=$EFS_FILE_SYSTEM_ID.efs.$EC2_REGION.amazonaws.com
+            mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 $DIR_SRC:/ /mnt/efs
+            yum update -y
+            yum install jq -y
+            sleep 20
+            messages=$(aws sqs receive-message  --region $EC2_REGION  --queue-url $SQS_URL --visibility-timeout 3600 --query 'Messages[*]')
+            if [ "$messages" == "null" ]; then
+               echo "No messages"
+            else
+               instace_id=$(curl 169.254.169.254/latest/meta-data/instance-id)
+               aws autoscaling enter-standby --instance-ids $instace_id --auto-scaling-group-name #{service}-#{stage}-asg --should-decrement-desired-capacity --region $EC2_REGION
+               Body=$(echo $messages| jq '.[].Body')
+               Id=$(echo $Body | sed 's/\\//g' | sed 's/^.\(.*\).$/\1/' | jq '.id' | sed 's/^.\(.*\).$/\1/')
+               ReceiptHandle=$(echo $messages| jq '.[].ReceiptHandle' | sed 's/^.\(.*\).$/\1/')
+               aws configure set default.s3.max_concurrent_requests 50
+               aws s3 sync s3://#{service}-#{stage}-results/private/$Id /mnt/efs/$Id
+               tar cfvz /mnt/efs/$Id.tar.gz /mnt/efs/$Id
+               aws s3 cp /mnt/efs/$Id.tar.gz s3://#{service}-#{stage}-results/private/$Id/result.tar.gz
+               aws sqs delete-message --region $EC2_REGION --queue-url $SQS_URL --receipt-handle $ReceiptHandle
+               aws autoscaling exit-standby --instance-ids $instace_id --auto-scaling-group-name #{service}-#{stage}-asg --should-decrement-desired-capacity --region $EC2_REGION
+               rm -rf /mnt/efs/$Id
+            fi
+            poweroff

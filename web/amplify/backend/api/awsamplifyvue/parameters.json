@@ -1,0 +1,13 @@
+{
+    "AppSyncApiName": "awsamplifyvue",
+    "AuthCognitoUserPoolId": {
+        "Fn::GetAtt": [
+            "authcognito37406a9f",
+            "Outputs.UserPoolId"
+        ]
+    },
+    "schemaGraphql": "s3://awsamplifyvue-20181023171603-deployment/amplify-appsync-files/schema.graphql.1540326299031",
+    "ResolverBucket": "awsamplifyvue-20181023171603-deployment",
+    "ResolverRootKey": "amplify-appsync-files",
+    "DeploymentTimestamp": "1540326299031"
+}

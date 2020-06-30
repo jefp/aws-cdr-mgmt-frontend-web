@@ -1,0 +1,56 @@
+{
+    "identityPoolName": "awsamplifyvue_identitypool_ebb73e4c",
+    "allowUnauthenticatedIdentities": false,
+    "thirdPartyAuth": false,
+    "lambdaLogPolicy": "awsamplifyvue_lambda_log_policy",
+    "openIdLambdaRoleName": "awsamplifyvue_openid_lambda_role",
+    "openIdRolePolicy": "awsamplifyvue_openid_pass_role_policy",
+    "openIdLambdaIAMPolicy": "awsamplifyvue_openid_lambda_iam_policy",
+    "openIdLogPolicy": "awsamplifyvue_openid_lambda_log_policy",
+    "userPoolName": "awsamplifyvue_userpool_ebb73e4c",
+    "autoVerifiedAttributes": [
+        "email"
+    ],
+    "mfaConfiguration": "OFF",
+    "mfaTypes": [
+        "SMS Text Message"
+    ],
+    "roleName": "awsamplifyvue_sns-role",
+    "roleExternalId": "awsamplifyvue_role_external_id",
+    "policyName": "awsamplifyvue-sns-policy",
+    "smsAuthenticationMessage": "Your authentication code is {####}",
+    "smsVerificationMessage": "Your verification code is {####}",
+    "emailVerificationSubject": "Your verification code",
+    "emailVerificationMessage": "Your verification code is {####}",
+    "defaultPasswordPolicy": false,
+    "passwordPolicyMinLength": 8,
+    "passwordPolicyCharacters": [
+        "Requires Lowercase",
+        "Requires Uppercase",
+        "Requires Numbers",
+        "Requires Symbols"
+    ],
+    "requiredAttributes": [
+        "email"
+    ],
+    "userpoolClientName": "awsamplifyvue_app_client",
+    "userpoolClientGenerateSecret": true,
+    "userpoolClientRefreshTokenValidity": 30,
+    "userpoolClientReadAttributes": [
+        "email"
+    ],
+    "mfaLambdaRole": "awsamplifyvue_totp_lambda_role",
+    "mfaLambdaLogPolicy": "awsamplifyvue_totp_lambda_log_policy",
+    "mfaPassRolePolicy": "awsamplifyvue_totp_pass_role_policy",
+    "mfaLambdaIAMPolicy": "awsamplifyvue_totp_lambda_iam_policy",
+    "userpoolClientLambdaRole": "awsamplifyvue_userpoolclient_lambda_role",
+    "userpoolClientLogPolicy": "awsamplifyvue_userpoolclient_lambda_log_policy",
+    "userpoolClientLambdaPolicy": "awsamplifyvue_userpoolclient_lambda_iam_policy",
+    "userpoolClientSetAttributes": false,
+    "authSelections": "identityPoolAndUserPool",
+    "resourceName": "cognitod85bcc59",
+    "unAuthRoleName": "awsamplifyvue-20181023172754-unauthRole",
+    "authRoleName": "awsamplifyvue-20181023172754-authRole",
+    "unAuthRoleArn": "arn:aws:iam::903009577210:role/awsamplifyvue-20181023172754-unauthRole",
+    "authRoleArn": "arn:aws:iam::903009577210:role/awsamplifyvue-20181023172754-authRole"
+}

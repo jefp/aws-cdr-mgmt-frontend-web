@@ -1,0 +1,10 @@
+Parameters:
+  stage:
+    Type: String
+    Description: project stage
+    Default: ${self:custom.stage}
+  service:
+    Type: String
+    Description: project service
+    Default: ${self:service}
+  
