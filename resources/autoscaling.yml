@@ -1,0 +1,142 @@
+Resources:
+  SimpleConfigTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName:  ${self:service}-${self:custom.stage}-template
+      LaunchTemplateData:
+        InstanceInitiatedShutdownBehavior: terminate
+        ImageId: ami-0de53d8956e8dcf80
+        InstanceType: c5.2xlarge
+        IamInstanceProfile: 
+          Arn: 
+            Fn::GetAtt: 
+              - Ec2InstanceProfile
+              - Arn 
+        SecurityGroupIds:
+          -  "Fn::GetAtt": [ InstanceSecurityGroup, GroupId ]
+        UserData:
+          Fn::Base64:
+            !Sub |
+              #!/bin/bash -xe
+              export LC_CTYPE=en_US.UTF-8
+              export LC_ALL=en_US.UTF-8
+              EC2_REGION=#{AWS::Region}
+              sudo mkdir -p /mnt/efs
+              EFS_FILE_SYSTEM_ID=#{EFSFileSystem}
+              SQS_URL=#{SQSPack}
+              DIR_SRC=$EFS_FILE_SYSTEM_ID.efs.$EC2_REGION.amazonaws.com
+              mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 $DIR_SRC:/ /mnt/efs
+              yum update -y
+              yum install jq -y
+              yum install pigz -y
+              instace_id=$(curl 169.254.169.254/latest/meta-data/instance-id)
+              aws configure set default.s3.max_concurrent_requests 500
+              while true; do
+                aws autoscaling enter-standby --instance-ids $instace_id --auto-scaling-group-name #{service}-#{stage}-asg --should-decrement-desired-capacity --region $EC2_REGION
+                EC=$?
+                if [ $EC -eq 0 ]; then
+                  break
+                fi
+                sleep 5
+              done
+              sleep 20
+              while [ true ]
+              do
+                messages=$(aws sqs receive-message  --region $EC2_REGION  --queue-url $SQS_URL --visibility-timeout 3600 --query 'Messages[*]')
+                if [ "$messages" == "null" ]; then
+                   break
+                else
+                   Body=$(echo $messages| jq '.[].Body')
+                   Id=$(echo $Body | sed 's/\\//g' | sed 's/^.\(.*\).$/\1/' | jq '.id' | sed 's/^.\(.*\).$/\1/')
+                   ReceiptHandle=$(echo $messages| jq '.[].ReceiptHandle' | sed 's/^.\(.*\).$/\1/')
+                   aws s3 sync s3://#{service}-#{stage}-results/private/$Id /mnt/efs/$Id
+                   tar cf - /mnt/efs/$Id | pigz -9 > /mnt/efs/$Id.tar.gz
+                   aws s3 cp /mnt/efs/$Id.tar.gz s3://#{service}-#{stage}-results/private/$Id/result.tar.gz
+                   aws sqs delete-message --region $EC2_REGION --queue-url $SQS_URL --receipt-handle $ReceiptHandle
+                   rm -rf /mnt/efs/$Id
+                   rm -rf /mnt/efs/$Id.tar.gz
+                fi
+              done
+              sleep 20
+              while true; do
+                aws autoscaling exit-standby --instance-ids $instace_id --auto-scaling-group-name #{service}-#{stage}-asg --region $EC2_REGION 
+                EC=$?
+                if [ $EC -eq 0 ]; then
+                  break
+                fi
+                sleep 5
+              done
+              sleep 30
+              aws autoscaling terminate-instance-in-auto-scaling-group --instance-id $instace_id --should-decrement-desired-capacity --region $EC2_REGION 
+  PackASGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: ${self:service}-${self:custom.stage}-asg
+      Tags: 
+        - 
+          Key: "Name"
+          Value: ${self:service}-${self:custom.stage}-asg-pack
+          PropagateAtLaunch: true
+      VPCZoneIdentifier:
+        - !Ref SubnetA
+        - !Ref SubnetB
+        - !Ref SubnetC
+      LaunchTemplate:
+        LaunchTemplateId: !Ref SimpleConfigTemplate
+        Version: !GetAtt 'SimpleConfigTemplate.LatestVersionNumber'
+      MinSize: '0'
+      MaxSize: '4'
+  ScaleUpPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName:
+        !Ref PackASGroup
+      Cooldown: 180
+      ScalingAdjustment: 1
+  ScaleDownPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName:
+        !Ref PackASGroup
+      Cooldown: 10
+      ScalingAdjustment: -1
+  SQSQueuedHigh:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      EvaluationPeriods: 1
+      Dimensions:
+        - Name: "QueueName"
+          Value:
+            Fn::GetAtt:
+              - "SQSPack"
+              - "QueueName"
+      AlarmActions:
+        - !Ref "ScaleUpPolicy"
+      AlarmDescription: "Scale-up if SQS available messages is > 1 for 5 minutes"
+      Namespace: "AWS/SQS"
+      Period: 60
+      ComparisonOperator: "GreaterThanThreshold"
+      Statistic: "Average"
+      Threshold: 0
+      MetricName: "ApproximateNumberOfMessagesVisible"
+  SQSQueuedLow:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      EvaluationPeriods: 1
+      Dimensions:
+        - Name: "QueueName"
+          Value:
+            Fn::GetAtt:
+              - "SQSPack"
+              - "QueueName"
+      AlarmActions:
+        - !Ref "ScaleDownPolicy"
+      AlarmDescription: "Scale-down if SQS available messages is == 0  for 5 minutes"
+      Namespace: "AWS/SQS"
+      Period: 60
+      ComparisonOperator: "LessThanOrEqualToThreshold"
+      Statistic: "Average"
+      Threshold: 0
+      MetricName: "ApproximateNumberOfMessagesVisible"

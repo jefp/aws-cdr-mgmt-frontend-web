@@ -1,0 +1,17 @@
+{
+  "PackDashcompletedLambdaFunctionQualifiedArn": "arn:aws:lambda:us-east-1:903009577210:function:cdr-mgmt-front-prd-pack-completed:98",
+  "ReceiverLambdaFunctionQualifiedArn": "arn:aws:lambda:us-east-1:903009577210:function:cdr-mgmt-front-prd-receiver:94",
+  "ApiGatewayRestApi": "k70eswvagi",
+  "RequestDashapprovalLambdaFunctionQualifiedArn": "arn:aws:lambda:us-east-1:903009577210:function:cdr-mgmt-front-prd-request-approval:97",
+  "AppsyncUrl": "https://tybap4gesngotb5jeoq6nk3aiu.appsync-api.us-east-1.amazonaws.com/graphql",
+  "ServerlessDeploymentBucketName": "cdr-mgmt-front-prd-serverlessdeploymentbucket-1s0465zoh1lcn",
+  "RestoreDashcompletedLambdaFunctionQualifiedArn": "arn:aws:lambda:us-east-1:903009577210:function:cdr-mgmt-front-prd-restore-completed:96",
+  "CDRStepsFunctionArn": "arn:aws:states:us-east-1:903009577210:stateMachine:CDRStepsFunction-nqGT4LpkGF8R",
+  "CognitoUserPoolClientId": "2d2rq1db9j3e6rjm4s5k415bs",
+  "CognitoUserPoolId": "us-east-1_IEMStMdeY",
+  "ApprovalLambdaFunctionQualifiedArn": "arn:aws:lambda:us-east-1:903009577210:function:cdr-mgmt-front-prd-approval:95",
+  "StatsLambdaFunctionQualifiedArn": "arn:aws:lambda:us-east-1:903009577210:function:cdr-mgmt-front-prd-stats:19",
+  "ProcessDashrequestLambdaFunctionQualifiedArn": "arn:aws:lambda:us-east-1:903009577210:function:cdr-mgmt-front-prd-process-request:95",
+  "IdentityPoolId": "us-east-1:a3d9ff0e-434c-49db-bfa1-a55ea2622073",
+  "ServiceEndpoint": "https://k70eswvagi.execute-api.us-east-1.amazonaws.com/prd"
+}

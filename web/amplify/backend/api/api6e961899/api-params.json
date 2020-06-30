@@ -1,0 +1,28 @@
+{
+    "paths": [
+        {
+            "name": "/stats",
+            "lambdaArn": "arn:aws:lambda:us-east-1:903009577210:function:cdr-mgmt-front-prd-stats",
+            "lambdaFunction": "cdr-mgmt-front-prd-stats",
+            "privacy": {
+                "private": true,
+                "auth": "r"
+            }
+        }
+    ],
+    "resourceName": "api6e961899",
+    "apiName": "awsamplifyvue6e961899",
+    "functionArns": [
+        {
+            "lambdaFunction": "cdr-mgmt-front-prd-stats",
+            "lambdaArn": "arn:aws:lambda:us-east-1:903009577210:function:cdr-mgmt-front-prd-stats"
+        }
+    ],
+    "privacy": {
+        "auth": 1,
+        "unauth": 0,
+        "authRoleName": "awsamplifyvue-20181023172754-authRole",
+        "unAuthRoleName": "awsamplifyvue-20181023172754-unauthRole"
+    },
+    "dependsOn": []
+}

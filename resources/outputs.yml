@@ -1,0 +1,19 @@
+Outputs:  
+  CognitoUserPoolId:    
+    Description: The Pool ID of the Cognito User Pool    
+    Value: !Ref UserPool
+  CognitoUserPoolClientId:
+    Description: The Client ID for AWS AppSync Auth
+    Value: !Ref UserPoolClient
+  ApiGatewayRestApi:
+    Description: The ID of ApiGatewayRestApi
+    Value: !Ref ApiGatewayRestApi
+  IdentityPoolId:
+    Value:
+      Ref: CognitoIdentityPool
+  AppsyncUrl:
+    Description: Appsync URL
+    Value:
+      Fn::GetAtt:
+        - AppSyncApi
+        - GraphQLUrl

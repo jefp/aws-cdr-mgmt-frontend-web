@@ -1,0 +1,48 @@
+Resources:
+  S3BucketResult:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: ${self:service}-${self:custom.stage}-results
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption: 
+        ServerSideEncryptionConfiguration: 
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteTempObjects
+            Status: Enabled
+            TagFilters:
+               - Key: Type
+                 Value: Temp    
+            ExpirationInDays: 3
+          - Id: ArchiveResults
+            Status: Enabled          
+            Transitions:
+              - StorageClass: GLACIER
+                TransitionInDays: 15
+  PackDashcompletedLambdaPermissionResultS3:
+    Type: AWS::Lambda::Permission
+    Properties:
+        FunctionName:
+          "Fn::GetAtt":
+            - PackDashcompletedLambdaFunction
+            - Arn
+        Principal: "s3.amazonaws.com"
+        Action: "lambda:InvokeFunction"
+        SourceAccount:
+          Ref: AWS::AccountId
+        SourceArn: arn:aws:s3:::${self:service}-${self:custom.stage}-results
+  WebBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: ${self:custom.stage}-crd-mgmt-web
+      BucketEncryption: 
+        ServerSideEncryptionConfiguration: 
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+  # add additional custom bucket configuration here

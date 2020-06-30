@@ -1,0 +1,9 @@
+{
+    "bucketName": "awsamplifyvue5f937d09c6fc4700b809b5c83049fb88",
+    "authPolicyName": "s3_amplify_469a0c7e",
+    "unauthPolicyName": "s3_amplify_469a0c7e",
+    "authRoleName": "awsamplifyvue-20181023171603-authRole",
+    "unauthRoleName": "awsamplifyvue-20181023171603-unauthRole",
+    "authPermissions": "rw",
+    "unauthPermissions": ""
+}

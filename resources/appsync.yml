@@ -1,0 +1,267 @@
+Resources:
+  AppSyncApi:
+    Type: "AWS::AppSync::GraphQLApi"
+    Description: "The GraphQL API for the Jobs App"
+    Properties:
+      AuthenticationType: "AMAZON_COGNITO_USER_POOLS"
+      Name: !Sub ${self:custom.stage}-appsync
+      UserPoolConfig:
+        UserPoolId: !Ref UserPool
+        DefaultAction: "ALLOW"
+        AwsRegion: !Sub "#{AWS::Region}"
+  AppSyncSchema:
+    Type: "AWS::AppSync::GraphQLSchema"
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      Definition: |
+        type File {
+        	jobId: ID!
+        	file: String!
+        	fileStatus: String!
+          createdAt: String!
+          lastUpdated: String!
+        }
+        type FileConnection {
+        	items: [File]
+        	nextToken: String
+        }
+
+        type Job {
+        	id: ID!
+          userId: String!
+        	from: String!
+        	to: String!
+        	filter: String
+          createdAt: String!
+          lastUpdated: String!
+          totalInGlacier: Int
+          ApprovalCode: String
+          ApprovalExpireAt: String
+          jobStatus: String
+          stepFunctionARN: String
+          expires: String
+          results: String
+          jobStatusDescription: String
+        	files(limit: Int = 100, nextToken: String): FileConnection
+        }
+
+        type JobConnection {
+        	items: [Job]
+        	nextToken: String
+          totalItems: Int
+        }
+
+        type Mutation {
+        	# Create a single event.
+        	createJob(
+        		from: String!,
+        		to: String!,
+        		filter: String,
+        	): Job
+        	addFileToJob(jobId: ID!, file: String!, fileStatus: String!): File
+        }
+
+        type Query {
+        	getJob(id: ID!): Job
+        	listJobs(filter: TableJobFilterInput, limit: Int = 100, nextToken: String): JobConnection
+        }
+
+        type Subscription {
+        	subscribeToJobFiles(jobId: String!): File
+        		@aws_subscribe(mutations: ["addFileToJob"])
+        }
+
+        input TableBooleanFilterInput {
+        	ne: Boolean
+        	eq: Boolean
+        }
+
+        input TableJobFilterInput {
+        	id: TableIDFilterInput
+        	from: TableStringFilterInput
+        	to: TableStringFilterInput
+        	filter: TableStringFilterInput
+        	jobStatus: TableStringFilterInput
+        }
+
+        input TableFloatFilterInput {
+        	ne: Float
+        	eq: Float
+        	le: Float
+        	lt: Float
+        	ge: Float
+        	gt: Float
+        	contains: Float
+        	notContains: Float
+        	between: [Float]
+        }
+
+        input TableIDFilterInput {
+        	ne: ID
+        	eq: ID
+        	le: ID
+        	lt: ID
+        	ge: ID
+        	gt: ID
+        	contains: ID
+        	notContains: ID
+        	between: [ID]
+        	beginsWith: ID
+        }
+
+        input TableIntFilterInput {
+        	ne: Int
+        	eq: Int
+        	le: Int
+        	lt: Int
+        	ge: Int
+        	gt: Int
+        	contains: Int
+        	notContains: Int
+        	between: [Int]
+        }
+
+        input TableStringFilterInput {
+        	ne: String
+        	eq: String
+        	le: String
+        	lt: String
+        	ge: String
+        	gt: String
+        	contains: String
+        	notContains: String
+        	between: [String]
+        	beginsWith: String
+        }
+
+        schema {
+        	query: Query
+        	mutation: Mutation
+        	subscription: Subscription
+        }
+
+  AppSyncJobsTableDataSource:
+    Type: "AWS::AppSync::DataSource"
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      Name: ${self:custom.stage}_jobs_table
+      Description: "The Jobs Table AppSync Data Source"
+      Type: AMAZON_DYNAMODB
+      ServiceRoleArn: !GetAtt DynamoDBRole.Arn
+      DynamoDBConfig:
+        TableName: !Ref JobsTable
+        AwsRegion: !Sub "#{AWS::Region}"
+  AppSyncFilesTableDataSource:
+    Type: "AWS::AppSync::DataSource"
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      Name: ${self:custom.stage}_jobs_details_table
+      Description: "The Jobs Table AppSync Data Source"
+      Type: AMAZON_DYNAMODB
+      ServiceRoleArn: !GetAtt DynamoDBRole.Arn
+      DynamoDBConfig:
+        TableName: !Ref JobsDetail
+        AwsRegion: !Sub "#{AWS::Region}"
+  AppSyncGetJobQueryResolver:
+    Type: "AWS::AppSync::Resolver"
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Query
+      FieldName: getJob
+      DataSourceName: !GetAtt AppSyncJobsTableDataSource.Name
+      RequestMappingTemplate: |
+        {
+          "version": "2012-02-28",
+          "operation": "GetItem",
+          "key": {
+            "id": $util.dynamodb.toDynamoDBJson($ctx.args.id),
+            "userId": $util.dynamodb.toDynamoDBJson($ctx.identity.sub)
+          }
+        }
+      ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  AppSyncSaveJobMutationResolver:
+    Type: "AWS::AppSync::Resolver"
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Mutation
+      FieldName: createJob
+      DataSourceName: !GetAtt AppSyncJobsTableDataSource.Name
+      RequestMappingTemplate: |
+        {
+         "version" : "2017-02-28",
+          "operation": "PutItem",
+          "key": {
+            "id": $util.dynamodb.toDynamoDBJson( "$util.time.nowEpochMilliSeconds().toString()-$util.autoId()"),
+            "userId": $util.dynamodb.toDynamoDBJson($ctx.identity.username)
+          },
+          "attributeValues": {
+            "from": $util.dynamodb.toDynamoDBJson($ctx.args.from),
+            "to": $util.dynamodb.toDynamoDBJson($ctx.args.to),
+            "filter": $util.dynamodb.toDynamoDBJson($ctx.args.filter),
+            "jobStatus": {"S":"pending"},
+            "lastUpdated": {"S":"$util.time.nowFormatted("yyyy-MM-dd HH:mm:ssZ", "America/Santiago")"},
+            "createdAt": {"S":"$util.time.nowFormatted("yyyy-MM-dd HH:mm:ssZ", "America/Santiago")"}
+          }
+        }
+      ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  AppSyncAllJobsQueryResolver:
+    Type: "AWS::AppSync::Resolver"
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Query
+      FieldName: listJobs
+      DataSourceName: !GetAtt AppSyncJobsTableDataSource.Name
+      RequestMappingTemplate: |
+        {
+        "version": "2017-02-28",
+        "operation": "Query",
+        "query" : {
+          "expression" : "#uid = :userId",
+          "expressionNames" : {
+            "#uid" : "userId"
+            },
+          "expressionValues" : {
+              ":userId" : { "S" : "$ctx.identity.username" }
+         }
+        },
+        "filter": #if($context.args.filter) $util.transform.toDynamoDBFilterExpression($ctx.args.filter) #else null #end,
+        "limit": 100,
+        "scanIndexForward": false,
+        "nextToken": #if($context.arguments.nextToken) "$context.arguments.nextToken" #else null #end
+        }
+      ResponseMappingTemplate: |
+        {
+          "items": $util.toJson($ctx.result.items),
+          "nextToken": #if($context.result.nextToken) "$context.result.nextToken" #else null #end
+        }
+  AppSyncFilesQueryResolver:
+    Type: "AWS::AppSync::Resolver"
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Job
+      FieldName: files
+      DataSourceName: !GetAtt AppSyncFilesTableDataSource.Name
+      RequestMappingTemplate: |
+        {
+          "version": "2017-02-28",
+          "operation": "Query",
+          "query": {
+            "expression": "jobId = :jobId",
+            "expressionValues": {
+              ":jobId": {
+                  "S": "$context.source.id"
+              }
+            }
+          },
+          "limit": #if($context.arguments.limit) $context.arguments.limit #else 10 #end,
+          "nextToken": #if($context.arguments.nextToken) "$context.arguments.nextToken" #else null #end
+        }
+      ResponseMappingTemplate: |
+        {
+          "items": $util.toJson($ctx.result.items),
+          "nextToken": #if($context.result.nextToken) "$context.result.nextToken" #else null #end
+        }

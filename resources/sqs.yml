@@ -1,0 +1,10 @@
+Resources:
+  SQSPack:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      VisibilityTimeout: 21600 
+      MessageRetentionPeriod: 86400
+      Tags: 
+        - 
+          Key: "Name"
+          Value: ${self:service}-${self:custom.stage}-pack-queue

@@ -1,0 +1,14 @@
+{
+  "PackDashcompletedLambdaFunctionQualifiedArn": "arn:aws:lambda:us-east-1:903009577210:function:cdr-mgmt-front-dev-pack-completed:35",
+  "RestoreDashcompletedLambdaFunctionQualifiedArn": "arn:aws:lambda:us-east-1:903009577210:function:cdr-mgmt-front-dev-restore-completed:35",
+  "CDRStepsFunctionArn": "arn:aws:states:us-east-1:903009577210:stateMachine:CDRStepsFunction-wbOl7qSV0PkG",
+  "CognitoUserPoolClientId": "3cftru2a8338ju4vc0o1hfj2pc",
+  "CognitoUserPoolId": "us-east-1_XvvYtXMjO",
+  "ApprovalLambdaFunctionQualifiedArn": "arn:aws:lambda:us-east-1:903009577210:function:cdr-mgmt-front-dev-approval:34",
+  "ReceiverLambdaFunctionQualifiedArn": "arn:aws:lambda:us-east-1:903009577210:function:cdr-mgmt-front-dev-receiver:34",
+  "ProcessDashrequestLambdaFunctionQualifiedArn": "arn:aws:lambda:us-east-1:903009577210:function:cdr-mgmt-front-dev-process-request:34",
+  "IdentityPoolId": "us-east-1:5d2712d7-8bc8-43ec-ba23-0798c88af08c",
+  "RequestDashapprovalLambdaFunctionQualifiedArn": "arn:aws:lambda:us-east-1:903009577210:function:cdr-mgmt-front-dev-request-approval:35",
+  "AppsyncUrl": "https://bi6doazxtjf65bf6sumjc6zqza.appsync-api.us-east-1.amazonaws.com/graphql",
+  "ServerlessDeploymentBucketName": "cdr-mgmt-front-dev-serverlessdeploymentbucket-1qg1cr5ncom40"
+}

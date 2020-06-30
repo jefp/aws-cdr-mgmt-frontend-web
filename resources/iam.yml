@@ -1,0 +1,117 @@
+Resources:
+  SNSRole:
+    Type: AWS::IAM::Role
+    Description: "An IAM Role to allow Cognito to send SNS messages"
+    Properties:
+      RoleName: !Sub ${self:custom.stage}-cognito-sns-role
+      ManagedPolicyArns:
+        - Ref: CognitoSNSPolicy
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - cognito-idp.amazonaws.com
+  CognitoSNSPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Managed policy to allow Amazon Cognito to access SNS
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: 
+              - sns:Publish
+            Resource: 
+              - '*'
+  DynamoDBRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${self:custom.stage}-appsync-dynamodb-role
+      ManagedPolicyArns:
+        - Ref: AppSyncDynamoDBPolicy
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - appsync.amazonaws.com
+    DependsOn:
+      - AppSyncDynamoDBPolicy
+  AppSyncDynamoDBPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Managed policy to allow AWS AppSync to access the tables created by this template.
+      Path: /appsync/
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:DeleteItem
+              - dynamodb:UpdateItem
+              - dynamodb:Query
+              - dynamodb:Scan
+              - dynamodb:BatchGetItem
+              - dynamodb:BatchWriteItem
+            Resource: 
+              - "Fn::GetAtt": [ JobsTable, Arn ]
+  Ec2InstanceRole:
+    Type: AWS::IAM::Role
+    Description: "An IAM Role to allow EC2 to connect to SSM and S3 results bucket"
+    Properties:
+      RoleName: !Sub ${self:custom.stage}-${self:service}-ec2-pack-role
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+      Path: /
+      Policies:
+        - PolicyName: ${self:custom.stage}-${self:service}-ec2-pack-policy  
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:PutObjectAcl
+                  - s3:ListBucket
+                  - s3:DeleteObject
+                  - s3:GetObjectAcl
+                  - s3:GetObject
+                Resource: 
+                  - arn:aws:s3:::${self:service}-${self:custom.stage}-results/*
+                  - arn:aws:s3:::${self:service}-${self:custom.stage}-results
+              - Effect: Allow
+                Action:
+                  - sqs:DeleteMessage
+                  - sqs:ReceiveMessage
+                  - sqs:ChangeMessageVisibility
+                Resource: 
+                  - "Fn::GetAtt": [ SQSPack, Arn ]
+              - Effect: Allow
+                Action:
+                  - autoscaling:EnterStandby
+                  - autoscaling:TerminateInstanceInAutoScalingGroup
+                  - autoscaling:ExitStandby
+                Resource:
+                  - arn:aws:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/${self:service}-${self:custom.stage}-asg
+  Ec2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles: [!Ref 'Ec2InstanceRole']
